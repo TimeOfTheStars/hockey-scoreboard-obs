@@ -10,8 +10,10 @@ the Free Software Foundation; either version 2 of the License, or
 
 #include "http.hpp"
 
-#include <plugin-support.h>
+// obs-module.h — раньше plugin-support.h: MSVC иначе видит blogva без dllimport
+// раньше объявления из libobs и считает это переопределением.
 #include <obs-module.h>
+#include <plugin-support.h>
 
 #include <curl/curl.h>
 
