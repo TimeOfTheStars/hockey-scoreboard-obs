@@ -14,6 +14,12 @@ include(helpers)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
+# OBS 30.2 под Windows кладёт свои CMake-пакеты в .deps/cmake/<имя>, а не в
+# lib/cmake, как OBS 31: без подсказки CMake их не найдёт.
+if(OS_WINDOWS)
+  list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/.deps/cmake")
+endif()
+
 find_package(libobs REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 
