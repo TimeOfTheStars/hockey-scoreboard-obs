@@ -54,12 +54,35 @@ function(_setup_obs_studio)
 
   if(OS_WINDOWS)
     set(_cmake_generator "${CMAKE_GENERATOR}")
-    set(_cmake_arch "-A ${arch},version=${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+    # Сборка идёт против OBS 30.2: её CMake читает платформу из `-A` целиком
+    # и с припиской версии SDK не находит своих зависимостей. Версия SDK
+    # передаётся отдельно, через CMAKE_SYSTEM_VERSION.
+    set(_cmake_arch "-A ${arch}")
     set(_cmake_extra "-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION} -DCMAKE_ENABLE_SCRIPTING=OFF")
   elseif(OS_MACOS)
     set(_cmake_generator "Xcode")
     set(_cmake_arch "-DCMAKE_OSX_ARCHITECTURES:STRING='arm64;x86_64'")
-    set(_cmake_extra "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    # OBS 30.2 узнаёт версию SDK по пути к нему, а новый CMake путь не
+    # заполняет. Передаём путь с версией в имени: …/SDKs/MacOSX15.5.sdk.
+    execute_process(
+      COMMAND xcrun --sdk macosx --show-sdk-version
+      OUTPUT_VARIABLE _sdk_version
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
+      COMMAND xcrun --sdk macosx --show-sdk-platform-path
+      OUTPUT_VARIABLE _sdk_platform
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(_sdk_path "${_sdk_platform}/Developer/SDKs/MacOSX${_sdk_version}.sdk")
+    if(NOT EXISTS "${_sdk_path}")
+      execute_process(
+        COMMAND xcrun --sdk macosx --show-sdk-path
+        OUTPUT_VARIABLE _sdk_path
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+    endif()
+    set(_cmake_extra "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}" "-DCMAKE_OSX_SYSROOT=${_sdk_path}")
   endif()
 
   message(STATUS "Configure ${label} (${arch})")
