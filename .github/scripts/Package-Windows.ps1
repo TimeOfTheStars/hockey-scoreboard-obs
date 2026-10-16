@@ -53,6 +53,7 @@ function Package {
         ErrorAction = 'SilentlyContinue'
         Path = @(
             "${ProjectRoot}/release/${ProductName}-*-windows-*.zip"
+            "${ProjectRoot}/release/${ProductName}-*-windows-*.exe"
         )
     }
 
@@ -66,6 +67,23 @@ function Package {
         Verbose = ($Env:CI -ne $null)
     }
     Compress-Archive -Force @CompressArgs
+    Log-Group
+
+    # Установщик: человеку у поля проще нажать «Далее», чем искать папку
+    # плагинов OBS. Inno Setup есть не на каждом раннере — ставим, если нет.
+    Log-Group "Building installer for ${ProductName}..."
+    $InnoCompiler = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
+    if ( ! ( Test-Path $InnoCompiler ) ) {
+        Invoke-External choco install innosetup --yes --no-progress
+    }
+    $InstallerArgs = @(
+        "/DVersion=${ProductVersion}"
+        "/DSourceDir=${ProjectRoot}/release/${Configuration}/${ProductName}"
+        "/DOutputDir=${ProjectRoot}/release"
+        "/DOutputName=${OutputName}-Installer"
+        "${ScriptHome}/installer.iss"
+    )
+    Invoke-External $InnoCompiler @InstallerArgs
     Log-Group
 }
 
